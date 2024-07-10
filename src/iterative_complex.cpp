@@ -13,5 +13,4 @@ void iterative_analyze_complex(struct IterativeComplexSolver *solver, const int 
 void iterative_solve_complex(struct IterativeComplexSolver *solver, const int n, const double *x, const double *x_im, const double *b,
                              const double *b_im)
 {
-    // add the code
 }
