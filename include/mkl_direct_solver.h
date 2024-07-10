@@ -37,9 +37,13 @@ void direct_analyze(struct DirectSolver *solver, const int n, const double *val)
 
 void direct_solve(struct DirectSolver *solver, const int n, const double *x, const double *b);
 
+void direct_release(struct DirectSolver *solver);
+
 //! complex system
 void direct_preprocess_complex(struct DirectComplexSolver *solver, const int n, const int *row_ptr, const int *col_idx);
 
 void direct_analyze_complex(struct DirectComplexSolver *solver, const int n, const double *val, const double *val_im);
 
 void direct_solve_complex(struct DirectComplexSolver *solver, const int n, double *x, double *x_im, const double *b, const double *b_im);
+
+void direct_release_complex(struct DirectComplexSolver *solver);

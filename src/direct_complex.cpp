@@ -113,9 +113,22 @@ void direct_solve_complex(struct DirectComplexSolver *solver, const int n, doubl
         x[i] = solver->x[i].real;
         x_im[i] = solver->x[i].imag;
     }
-
+}
+void direct_release_complex(struct DirectComplexSolver *solver)
+{
+    printf("Release.\n");
+    MKL_INT maxfct, mnum, error;
+    maxfct = 1;
+    mnum = 1;
+    error = 0;
+    MKL_INT msglvl = 1;
+    MKL_INT nrhs = 1;
     // release resources
     solver->phase = -1;
-    pardiso(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &n, solver->val, solver->row_ptr, solver->col_idx, NULL, &nrhs, solver->iparm,
-            &msglvl, (double *)b, (double *)x, &error);
+    pardiso(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &solver->n, solver->val, solver->row_ptr, solver->col_idx, NULL, &nrhs, solver->iparm,
+            &msglvl, NULL, NULL, &error);
+    if (error != 0)
+    {
+        printf("PARDISO error: %d\n", error);
+    }
 }

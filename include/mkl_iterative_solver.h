@@ -6,6 +6,7 @@ struct IterativeSolver
     // CSR format
     const int *row_ptr;
     const int *col_idx;
+    int num_b;
     const double *val;
 };
 
@@ -18,11 +19,11 @@ void iterative_preprocess(struct IterativeSolver *solver, const int n, const int
 
 void iterative_analyze(struct IterativeSolver *solver, const int n, const double *val);
 
-void dcg_solve(struct IterativeSolver *solver, const int n, const double *x, const double *b);
+void dcg_solve(struct IterativeSolver *solver, const int n, double *x, const double *b);
 
-void dfgmres_solve(struct IterativeSolver *solver, const int n, const double *x, const double *b);
+void dfgmres_solve(struct IterativeSolver *solver, const int n, double *x, const double *b);
 
-void iterative_solve(struct IterativeSolver *solver, const int n, const double *x, const double *b);
+void iterative_solve(struct IterativeSolver *solver, const int n, double *x, const double *b);
 
 //! complex system
 void iterative_preprocess_complex(struct IterativeComplexSolver *solver, const int n, const int *row_ptr, const int *col_idx);

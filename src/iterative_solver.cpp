@@ -20,7 +20,7 @@
 #include "utlise_long.h"
 
 // direct solver code
-#include "mkl_direct_solver.h"
+#include "mkl_iterative_solver.h"
 
 struct SolverArgument
 {
@@ -217,37 +217,37 @@ int main(int argc, char **argv)
     {
         if (args.sys_type == 0)
         {
-            struct DirectSolver mysolver;
+            struct IterativeSolver mysolver;
             mysolver.num_b = args.num_b;
             tt = GetCurrentTime();
-            direct_preprocess(&mysolver, n, row_ptr, col_idx);
+            iterative_preprocess(&mysolver, n, row_ptr, col_idx);
             time_rec.preprocess_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_analyze(&mysolver, n, val);
+            iterative_analyze(&mysolver, n, val);
             time_rec.analyze_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_solve(&mysolver, n, x, b);
+            iterative_solve(&mysolver, n, x, b);
             time_rec.solve_time += GetCurrentTime() - tt;
-            direct_release(&mysolver);
+            // iterative_release(&mysolver);
         }
         else
         {
-            struct DirectComplexSolver mysolver;
+            struct IterativeComplexSolver mysolver;
 
             tt = GetCurrentTime();
-            direct_preprocess_complex(&mysolver, n, row_ptr, col_idx);
+            iterative_preprocess_complex(&mysolver, n, row_ptr, col_idx);
             time_rec.preprocess_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_analyze_complex(&mysolver, n, val, val_im);
+            iterative_analyze_complex(&mysolver, n, val, val_im);
             time_rec.analyze_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_solve_complex(&mysolver, n, x, x_im, b, b_im);
+            iterative_solve_complex(&mysolver, n, x, x_im, b, b_im);
             time_rec.solve_time += GetCurrentTime() - tt;
-            direct_release_complex(&mysolver);
+            // iterative_release_complex(&mysolver);
         }
     }
 

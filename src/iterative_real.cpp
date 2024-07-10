@@ -153,4 +153,4 @@ void dfgmres_solve(struct IterativeSolver *solver, const int n, double *x, const
     dfgmres_get(&n, x, const_cast<double *>(b), &rci_request, ipar, dpar, tmp, &itercount);
 }
 
-void iterative_solve(struct IterativeSolver *solver, const int n, const double *x, const double *b) { dcg_solve(solver, n, x, b); }
+void iterative_solve(struct IterativeSolver *solver, const int n, double *x, const double *b) { dcg_solve(solver, n, x, b); }

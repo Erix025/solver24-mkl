@@ -67,31 +67,40 @@ void direct_analyze(struct DirectSolver *solver, const int n, const double *val)
 
 void direct_solve(struct DirectSolver *solver, const int n, const double *x, const double *b)
 {
-    MKL_INT maxfct, mnum, phase, error;
+    MKL_INT maxfct, mnum, error;
 
     maxfct = 1;
     mnum = 1;
     error = 0;
     MKL_INT msglvl = 1;
-    MKL_INT nrhs = 1;
+    MKL_INT nrhs = solver->num_b;
 
     solver->phase = 33; // analysis phase
     printf("Solve process start.\n");
-
-    for (int i = 0; i < solver->num_b; i++)
-    {
-        pardiso(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &solver->n, solver->val, solver->row_ptr, solver->col_idx, NULL, &nrhs, solver->iparm,
-                &msglvl, (double *)&b[n * i], (double *)&x[n * i], &error);
-    }
+    pardiso(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &solver->n, solver->val, solver->row_ptr, solver->col_idx, NULL, &nrhs, solver->iparm,
+            &msglvl, (double *)b, (double *)x, &error);
     printf("Solve process End.\n");
 
     if (error != 0)
     {
         printf("PARDISO error: %d\n", error);
     }
-
+}
+void direct_release(struct DirectSolver *solver)
+{
+    printf("Release.\n");
+    MKL_INT maxfct, mnum, error;
+    maxfct = 1;
+    mnum = 1;
+    error = 0;
+    MKL_INT msglvl = 1;
+    MKL_INT nrhs = 1;
     // release resources
     solver->phase = -1;
-    pardiso(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &n, solver->val, solver->row_ptr, solver->col_idx, NULL, &nrhs, solver->iparm,
-            &msglvl, (double *)b, (double *)x, &error);
+    pardiso(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &solver->n, solver->val, solver->row_ptr, solver->col_idx, NULL, &nrhs, solver->iparm,
+            &msglvl, NULL, NULL, &error);
+    if (error != 0)
+    {
+        printf("PARDISO error: %d\n", error);
+    }
 }
