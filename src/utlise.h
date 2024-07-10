@@ -82,6 +82,24 @@ void spmv(int n, int *row_ptr, int *col_idx, double *val, double *x, double *y)
     }
 }
 
+void spmv_ilp64(long long int n, long long int *row_ptr, long long int *col_idx, double *val, double *x, double *y)
+{
+    for (long long int i = 0; i < n; i++)
+    {
+        y[i] = 0.0;
+        double c = 0.0;
+        for (int j = row_ptr[i]; j < row_ptr[i + 1]; j++)
+        {
+            double num = val[j] * x[col_idx[j]];
+            double z = num - c;
+            double t = y[i] + z;
+            c = (t - y[i]) - z;
+            y[i] = t;
+            //            printf("%lf\n", y[i]);
+        }
+    }
+}
+
 // The complex number multiplication
 void mul(double *v1, double *v1i, double *v2, double *v2i, double *v3, double *v3i)
 {
@@ -388,4 +406,32 @@ double GetCurrentTime()
     struct timeval time;
     gettimeofday(&time, NULL);
     return time.tv_sec * 1000.0 + time.tv_usec / 1000.0;
+}
+
+void check_correctness_ilp64(long long int n, long long int *row_ptr, long long int *col_idx, double *val, double *x, double *b)
+{
+
+    double *b_new = (double *)malloc(sizeof(double) * n);
+    double *check_b = (double *)malloc(sizeof(double) * n);
+    // double* r_b     = (double*)malloc(sizeof(double) * n);
+
+    spmv_ilp64(n, row_ptr, col_idx, val, x, b_new);
+    for (int i = 0; i < n; i++)
+    {
+        check_b[i] = b_new[i] - b[i];
+        // r_b[i]     = fabs(check_b[i]) / MAX((b[i]), 1e-20);
+    }
+
+    double answer1 = vec2norm(check_b, n);
+    double answer2 = max_check(check_b, n);
+    double answer3 = answer1 / vec2norm(b, n);
+    // double answer4 = max_check(r_b, n);
+    fprintf(stdout, "Check || b - Ax || 2             =  %12.6e\n", answer1);
+    fprintf(stdout, "Check || b - Ax || MAX           =  %12.6e\n", answer2);
+    fprintf(stdout, "Check || b - Ax || 2 / || b || 2 =  %12.6e\n", answer3);
+    // fprintf(stdout, "Check MAX { |b - Ax|_i / |b_i| } =  %12.6e\n", answer4);
+
+    free(b_new);
+    free(check_b);
+    // free(r_b);
 }

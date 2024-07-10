@@ -15,6 +15,20 @@ struct DirectSolver
     MKL_INT phase;
 };
 
+struct DirectSolver_ILP64
+{
+    long long int n; // size of matrix
+    // CSR format
+    const long long int *row_ptr;
+    const long long int *col_idx;
+    int num_b;
+    const double *val;
+    void *pt[64];
+    long long int iparm[64];
+    long long int mtype;
+    long long int phase;
+};
+
 struct DirectComplexSolver
 {
     // add struct array
@@ -38,6 +52,14 @@ void direct_analyze(struct DirectSolver *solver, const int n, const double *val)
 void direct_solve(struct DirectSolver *solver, const int n, const double *x, const double *b);
 
 void direct_release(struct DirectSolver *solver);
+
+void direct_preprocess_ilp64(struct DirectSolver_ILP64 *solver, const long long int n, const long long int *row_ptr, const long long int *col_idx);
+
+void direct_analyze_ilp64(struct DirectSolver_ILP64 *solver, const long long int n, const double *val);
+
+void direct_solve_ilp64(struct DirectSolver_ILP64 *solver, const long long int n, const double *x, const double *b);
+
+void direct_release_ilp64(struct DirectSolver_ILP64 *solver);
 
 //! complex system
 void direct_preprocess_complex(struct DirectComplexSolver *solver, const int n, const int *row_ptr, const int *col_idx);
