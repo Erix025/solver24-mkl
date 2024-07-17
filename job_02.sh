@@ -10,8 +10,8 @@
 #SBATCH --mem=1200G
 
 module load intel/intel_compiler/2024u1
-MATRIX=../../dataset/solverchallenge24_03/solverchallenge24_03_A.mtx
-VECTOR=../../dataset/solverchallenge24_03/solverchallenge24_03_b.rhs
+MATRIX=../../dataset/solverchallenge24_02/solverchallenge24_02_A.mtx
+VECTOR=../../dataset/solverchallenge24_02/solverchallenge24_02_b.rhs
 # MATRIX=matrix.mtx
 # VECTOR=rhs.rhs
 echo $MATRIX $VECTOR
@@ -19,7 +19,7 @@ export OMP_PROC_BIND=true
 export OMP_NUM_THREADS=96
 export MKL_NUM_THREADS=96
 export MKL_PARDISO_OOC_MAX_CORE_SIZE=1000000
-./build/direct_solver_ilp64 $MATRIX $VECTOR 1 0 0
+./build/iterative_solver $MATRIX $VECTOR 1 0 0
 # cp answer_x_*.rhs output/answer_$SLURM_JOB_ID
 # ./iterative_solver $MATRIX $VECTOR 1
 # OMP_NUM_THREADS=64 MKL_PARDISO_OOC_MAX_CORE_SIZE=200000 MKL_NUM_THREADS=64 ./hybrid_solver $MATRIX $VECTOR 1

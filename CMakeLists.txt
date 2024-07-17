@@ -28,9 +28,11 @@ target_link_libraries(direct_solver ${LINK_LIBS})
 add_executable(iterative_solver src/iterative_solver.cpp src/iterative_real.cpp src/iterative_complex.cpp)
 target_link_libraries(iterative_solver ${LINK_LIBS})
 
-add_executable(direct_solver_ilp64 src/direct_solver_ilp64.cpp src/direct_real_ilp64.cpp)
+add_executable(direct_solver_ilp64 src/direct_solver_ilp64.cpp src/direct_real_ilp64.cpp src/direct_complex_ilp64.cpp)
 target_link_libraries(direct_solver_ilp64 ${LINK_LIBS})
 
+add_executable(hybrid_solver src/hybrid_solver.cpp src/direct_real.cpp src/direct_complex.cpp src/iterative_real.cpp src/iterative_complex.cpp)
+target_link_libraries(hybrid_solver ${LINK_LIBS})
 
 # add_executable(hybrid_solver src/hybrid_solver.c)
 # target_link_libraries(hybrid_solver ${LINK_LIBS})

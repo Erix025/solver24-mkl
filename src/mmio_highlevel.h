@@ -131,15 +131,15 @@ int mmio_allinone(int *m, int *n, int *nnz, int *isSymmetric, int *base, int **c
     if (ret_code != 0)
         return -4;
 
-    if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
-    {
-        isSymmetric_tmp = 1;
-        // printf("input matrix is symmetric = true\n");
-    }
-    else
-    {
-        // printf("input matrix is symmetric = false\n");
-    }
+    // if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
+    // {
+    //     isSymmetric_tmp = 1;
+    //     // printf("input matrix is symmetric = true\n");
+    // }
+    // else
+    // {
+    //     // printf("input matrix is symmetric = false\n");
+    // }
 
     MAT_PTR_TYPE *csrRowPtr_counter = (MAT_PTR_TYPE *)malloc((m_tmp + 1) * sizeof(MAT_PTR_TYPE));
     memset(csrRowPtr_counter, 0, (m_tmp + 1) * sizeof(MAT_PTR_TYPE));

@@ -25,6 +25,8 @@ struct DirectSolver_ILP64
     const double *val;
     void *pt[64];
     long long int iparm[64];
+    long long int *parm;
+    bool enable_ordering;
     long long int mtype;
     long long int phase;
 };
@@ -38,8 +40,25 @@ struct DirectComplexSolver
     MKL_Complex16 *val;
     void *pt[64];
     MKL_INT iparm[64];
+    MKL_INT *parm;
+    bool enable_ordering;
     MKL_INT mtype;
     MKL_INT phase;
+    MKL_Complex16 *x;
+    MKL_Complex16 *b;
+};
+
+struct DirectComplexSolver_ILP64
+{
+    // add struct array
+    long long int n;
+    const long long int *row_ptr;
+    const long long int *col_idx;
+    MKL_Complex16 *val;
+    void *pt[64];
+    long long int iparm[64];
+    long long int mtype;
+    long long int phase;
     MKL_Complex16 *x;
     MKL_Complex16 *b;
 };
@@ -69,3 +88,11 @@ void direct_analyze_complex(struct DirectComplexSolver *solver, const int n, con
 void direct_solve_complex(struct DirectComplexSolver *solver, const int n, double *x, double *x_im, const double *b, const double *b_im);
 
 void direct_release_complex(struct DirectComplexSolver *solver);
+
+void direct_preprocess_complex_ilp64(struct DirectComplexSolver_ILP64 *solver, const long long int n, const long long int *row_ptr, const long long int *col_idx);
+
+void direct_analyze_complex_ilp64(struct DirectComplexSolver_ILP64 *solver, const long long int n, const double *val, const double *val_im);
+
+void direct_solve_complex_ilp64(struct DirectComplexSolver_ILP64 *solver, const long long int n, double *x, double *x_im, const double *b, const double *b_im);
+
+void direct_release_complex_ilp64(struct DirectComplexSolver_ILP64 *solver);

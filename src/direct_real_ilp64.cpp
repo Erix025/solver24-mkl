@@ -8,21 +8,24 @@ void direct_preprocess_ilp64(struct DirectSolver_ILP64 *solver, const long long 
     solver->col_idx = col_idx;
     solver->mtype = 11; // matrix type
     long long int maxfct, mnum, phase, error;
-
     for (int i = 0; i < 64; i++)
     {
         solver->pt[i] = 0;
         solver->iparm[i] = 0;
     }
     solver->iparm[0] = 1;
-    solver->iparm[1] = 2;
-    solver->iparm[3] = 91;
-    solver->iparm[7] = 10;
-    solver->iparm[9] = 20;
+    solver->iparm[1] = 3;
+//    solver->iparm[3] = 91;
+//    solver->iparm[7] = 10;
+//    solver->iparm[9] = 20;
     solver->iparm[20] = 0;
     solver->iparm[23] = 0;
     solver->iparm[34] = 1;
     solver->iparm[59] = 1;
+    if (solver->enable_ordering)
+        solver->iparm[4] = 1;
+    else
+        solver->iparm[4] = 2;
 
     maxfct = 1;
     mnum = 1;
@@ -33,7 +36,7 @@ void direct_preprocess_ilp64(struct DirectSolver_ILP64 *solver, const long long 
 
     printf("Preprocess start.\n");
     // initial
-    pardiso_64(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &solver->n, NULL, row_ptr, col_idx, NULL, &nrhs, solver->iparm, &msglvl, NULL, NULL,
+    pardiso_64(solver->pt, &maxfct, &mnum, &solver->mtype, &solver->phase, &solver->n, NULL, row_ptr, col_idx, solver->parm, &nrhs, solver->iparm, &msglvl, NULL, NULL,
                &error);
     if (error != 0)
     {

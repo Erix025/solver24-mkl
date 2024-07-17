@@ -115,6 +115,23 @@ void spmv_complex_ld(int n, int *row_ptr, int *col_idx, long double *val, long d
     }
 }
 
+void spmv_complex_ld_ilp64(long long int n, long long int *row_ptr, long long int *col_idx, long double *val, long double *vali, long double *x, long double *xi, long double *y,
+                           long double *yi)
+{
+    long double tmp[2];
+    long double c[2];
+    for (long long int i = 0; i < n; i++)
+    {
+        y[i] = yi[i] = 0.0;
+        c[0] = c[1] = 0.0;
+        for (long long int j = row_ptr[i]; j < row_ptr[i + 1]; j++)
+        {
+            mul_ld(val + j, vali + j, x + col_idx[j], xi + col_idx[j], tmp, tmp + 1);
+            add_ld(tmp, tmp + 1, y + i, yi + i, c, c + 1);
+        }
+    }
+}
+
 // Calculate the mode of complex number
 void complex_modulus_squared_ld(long double *a, long double *ai, long double *l) { *l = *a * *a + (*ai * *ai); }
 
@@ -494,4 +511,85 @@ void check_correctness_ld_d2ld_ilp64(long long int n, long long int *row_ptr, lo
     free(b_new);
     free(check_b);
     // free(r_b);
+}
+
+void check_correctness_complex_ld_d2ld_ilp64(long long int n, long long int *row_ptr, long long int *col_idx, double *val, double *vali, double *x, double *xi, double *b, double *bi)
+{
+    //! Step 1: data type transformation: double -> long double
+    long long int nnz = row_ptr[n] - row_ptr[0];
+    // printf("nnz = %d\n", nnz);
+    long double *val_ld = (long double *)malloc(sizeof(long double) * nnz);
+    long double *vali_ld = (long double *)malloc(sizeof(long double) * nnz);
+    long double *x_ld = (long double *)malloc(sizeof(long double) * n);
+    long double *xi_ld = (long double *)malloc(sizeof(long double) * n);
+    long double *b_ld = (long double *)malloc(sizeof(long double) * n);
+    long double *bi_ld = (long double *)malloc(sizeof(long double) * n);
+
+    for (long long int i = 0; i < nnz; i++)
+    {
+        val_ld[i] = (long double)val[i];
+        vali_ld[i] = (long double)vali[i];
+    }
+
+    for (long long int i = 0; i < n; i++)
+    {
+        x_ld[i] = (long double)x[i];
+        xi_ld[i] = (long double)xi[i];
+        b_ld[i] = (long double)b[i];
+        bi_ld[i] = (long double)bi[i];
+    }
+
+    //! Step 2: Check
+    long double *b_new = (long double *)malloc(sizeof(long double) * n);
+    long double *b_new_i = (long double *)malloc(sizeof(long double) * n);
+    long double *check_b = (long double *)malloc(sizeof(long double) * n);
+    long double *check_b_i = (long double *)malloc(sizeof(long double) * n);
+
+    long double *r_b = (long double *)malloc(sizeof(long double) * n);
+    long double *r_b_i = (long double *)malloc(sizeof(long double) * n);
+    // long double* rb_mode = (long double*)malloc(sizeof(long double) * n);
+    // long double  tmp     = 0.0;
+    // long double* l;
+    // l = &tmp;
+
+    spmv_complex_ld_ilp64(n, row_ptr, col_idx, val_ld, vali_ld, x_ld, xi_ld, b_new, b_new_i);
+    for (int i = 0; i < n; i++)
+    {
+        check_b[i] = b_new[i] - b_ld[i];
+        check_b_i[i] = b_new_i[i] - bi_ld[i];
+        // complex_division_ld(&check_b[i], &check_b_i[i], &b_ld[i], &bi_ld[i], r_b, r_b_i);
+        // complex_modulus_squared_ld(r_b, r_b_i, l);
+        // rb_mode[i] = sqrtl(*l);
+    }
+
+    long double err_check_b = 0.0;
+    long double err_check_bi = 0.0;
+    long double err_b = 0.0;
+    long double err_bi = 0.0;
+
+    vec2norm_complex_ld(check_b, check_b_i, &err_check_b, &err_check_bi, n);
+    vec2norm_complex_ld(b_ld, bi_ld, &err_b, &err_bi, n);
+    long double max_answer = max_check_complex_ld(check_b, check_b_i, n);
+    // long double max_answer2 = max_check_ld(rb_mode, n);
+
+    fprintf(stdout, "LD-Check complex || b - Ax || 2             =  %12.6Le \n", err_check_b);
+    fprintf(stdout, "LD-Check complex || b - Ax || MAX           =  %12.6Le \n", max_answer);
+    fprintf(stdout, "LD-Check complex || b - Ax || 2 / || b || 2 =  %12.6Le \n", err_check_b / err_b);
+    // fprintf(stdout, "LD-Check complex MAX { |b - Ax|_i / |b_i| } =  %12.6Le \n", max_answer2);
+
+    //! Step 3: free memory
+    free(val_ld);
+    free(vali_ld);
+    free(x_ld);
+    free(xi_ld);
+    free(b_ld);
+    free(bi_ld);
+
+    free(b_new);
+    free(b_new_i);
+    free(check_b);
+    free(check_b_i);
+    free(r_b);
+    free(r_b_i);
+    // free(rb_mode);
 }

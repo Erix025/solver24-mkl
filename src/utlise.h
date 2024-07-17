@@ -149,6 +149,24 @@ void spmv_complex(int n, int *row_ptr, int *col_idx, double *val, double *vali, 
     }
 }
 
+void spmv_complex_ilp64(long long int n, long long int *row_ptr, long long int *col_idx, double *val, double *vali, double *x, double *xi, double *y, double *yi)
+{
+    double tmp[2];
+    double c[2];
+    for (long long int i = 0; i < n; i++)
+    {
+        y[i] = yi[i] = 0.0;
+        c[0] = c[1] = 0.0;
+        // printf(c + 1);
+
+        for (long long int j = row_ptr[i]; j < row_ptr[i + 1]; j++)
+        {
+            mul(val + j, vali + j, x + col_idx[j], xi + col_idx[j], tmp, tmp + 1);
+            add(tmp, tmp + 1, y + i, yi + i, c, c + 1);
+        }
+    }
+}
+
 // Calculate the mode of complex number
 void complex_modulus_squared(double *a, double *ai, double *l) { *l = *a * *a + (*ai * *ai); }
 
@@ -434,4 +452,51 @@ void check_correctness_ilp64(long long int n, long long int *row_ptr, long long 
     free(b_new);
     free(check_b);
     // free(r_b);
+}
+void check_correctness_complex_ilp64(long long int n, long long int *row_ptr, long long int *col_idx, double *val, double *val_v, double *x, double *xi, double *b, double *bi)
+{
+    double *b_new = (double *)malloc(sizeof(double) * n);
+    double *b_new_i = (double *)malloc(sizeof(double) * n);
+    double *check_b = (double *)malloc(sizeof(double) * n);
+    double *check_b_i = (double *)malloc(sizeof(double) * n);
+
+    double *r_b = (double *)malloc(sizeof(double) * n);
+    double *r_b_i = (double *)malloc(sizeof(double) * n);
+    // double* rb_mode = (double*)malloc(sizeof(double) * n);
+    // double  tmp     = 0.0;
+    // double* l;
+    // l = &tmp;
+
+    spmv_complex_ilp64(n, row_ptr, col_idx, val, val_v, x, xi, b_new, b_new_i);
+    for (long long int i = 0; i < n; i++)
+    {
+        check_b[i] = b_new[i] - b[i];
+        check_b_i[i] = b_new_i[i] - bi[i];
+        // complex_division(&check_b[i], &check_b_i[i], &b[i], &bi[i], r_b, r_b_i);
+        // complex_modulus_squared(r_b, r_b_i, l);
+        // rb_mode[i] = sqrtl(*l);
+    }
+
+    double err_check_b = 0.0;
+    double err_check_bi = 0.0;
+    double err_b = 0.0;
+    double err_bi = 0.0;
+
+    vec2norm_complex(check_b, check_b_i, &err_check_b, &err_check_bi, n);
+    vec2norm_complex(b, bi, &err_b, &err_bi, n);
+    double max_answer = max_check_complex(check_b, check_b_i, n);
+    // double max_answer2 = max_check(rb_mode, n);
+
+    fprintf(stdout, "Check complex || b - Ax || 2             =  %12.6e \n", err_check_b);
+    fprintf(stdout, "Check complex || b - Ax || MAX           =  %12.6e \n", max_answer);
+    fprintf(stdout, "Check complex || b - Ax || 2 / || b || 2 =  %12.6e \n", err_check_b / err_b);
+    // fprintf(stdout, "Check complex MAX { |b - Ax|_i / |b_i| } =  %12.6e \n", max_answer2);
+
+    free(b_new);
+    free(b_new_i);
+    free(check_b);
+    free(check_b_i);
+    free(r_b);
+    free(r_b_i);
+    // free(rb_mode);
 }

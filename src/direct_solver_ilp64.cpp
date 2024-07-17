@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
+#include <fstream>
 // read matrix file
 #include "mmio_highlevel.h"
 
@@ -26,6 +28,8 @@ struct SolverArgument
 {
     std::string filename_matrix;
     std::string filename_b;
+    std::string ordering_input;
+    bool ordering_enable = false;
     int read_matrix_base = 1; // 0-base or 1-base, default 1-base
     int type = 0;             // type to output time, 0: end to end time; 1:solver time + solve time; 2:solve time; default 0
     int test_frequency = 3;   // run code frequency
@@ -42,6 +46,44 @@ struct TimerRec
 
 using SolverArgument = struct SolverArgument;
 using TimerRec = struct TimerRec;
+
+void load_ordering(std::string filename, const long long int n, long long int* ordering) {
+    std::ifstream file(filename);
+
+    if (!file) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    long long int number;
+    long long int count = 0;
+    while (file >> number && count < n) {
+        ordering[count] = number;
+        ++count;
+    }
+
+    if (count < n) {
+        std::cerr << "Warning: Only " << count << " elements were read from the file." << std::endl;
+    }
+
+    file.close();
+}
+void save_ordering(std::string filename, const long long int n, const long long int* ordering) {
+    std::ofstream file(filename);
+
+    if (!file) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    for (long long int i = 0; i < n; ++i) {
+        file << ordering[i] << std::endl;
+    }
+
+    file.close();
+}
+
+
 
 std::string get_index_filename(std::string &prefix, int index)
 {
@@ -96,7 +138,12 @@ void parse_args(int argc, char **argv, SolverArgument *args)
             exit(-1);
         }
     }
-    if (argc < 3 || argc > 7)
+    if (argc >= 8)
+    {
+        args->ordering_input = argv[7];
+        args->ordering_enable = true;
+    }
+    if (argc < 3 || argc > 8)
     {
         print_help();
         exit(-1);
@@ -119,6 +166,7 @@ int main(int argc, char **argv)
     double *x = NULL, *x_im = NULL; // solution vector x, (x: real number, x_im: imaginary number)
     double *b = NULL, *b_im = NULL; // right-hand side vector b, (b: real number, b_im: imaginary number)
     double tt, time;
+    long long int* ordering = NULL;
 
     SolverArgument args;
 
@@ -134,6 +182,7 @@ int main(int argc, char **argv)
     /* ========================================== */
     // Step 1: Load matrix and rhs from mtx files
     /* ========================================== */
+
     if (args.sys_type == 0) // real system
     {
         // load matrix
@@ -209,6 +258,12 @@ int main(int argc, char **argv)
         memset(x_im, 0.0, sizeof(double) * n * args.num_b);
     }
 
+    ordering = new long long int[n];
+
+    if (args.ordering_enable)
+        load_ordering(args.ordering_input, n, ordering);
+
+
     /* ========================================== */
     // Step 2: Solve the linear system
     /* ========================================== */
@@ -219,6 +274,8 @@ int main(int argc, char **argv)
         if (args.sys_type == 0)
         {
             struct DirectSolver_ILP64 mysolver;
+            mysolver.parm = ordering;
+            mysolver.enable_ordering = args.ordering_enable;
             mysolver.num_b = args.num_b;
             tt = GetCurrentTime();
             direct_preprocess_ilp64(&mysolver, n, row_ptr, col_idx);
@@ -235,23 +292,25 @@ int main(int argc, char **argv)
         }
         else
         {
-            printf("ILP64 Complex Solver is not implemented\n");
-            // struct DirectComplexSolver mysolver;
+            struct DirectComplexSolver_ILP64 mysolver;
+            // mysolver.parm = ordering
+            tt = GetCurrentTime();
+            direct_preprocess_complex_ilp64(&mysolver, n, row_ptr, col_idx);
+            time_rec.preprocess_time += GetCurrentTime() - tt;
 
-            // tt = GetCurrentTime();
-            // direct_preprocess_complex(&mysolver, n, row_ptr, col_idx);
-            // time_rec.preprocess_time += GetCurrentTime() - tt;
+            tt = GetCurrentTime();
+            direct_analyze_complex_ilp64(&mysolver, n, val, val_im);
+            time_rec.analyze_time += GetCurrentTime() - tt;
 
-            // tt = GetCurrentTime();
-            // direct_analyze_complex(&mysolver, n, val, val_im);
-            // time_rec.analyze_time += GetCurrentTime() - tt;
-
-            // tt = GetCurrentTime();
-            // direct_solve_complex(&mysolver, n, x, x_im, b, b_im);
-            // time_rec.solve_time += GetCurrentTime() - tt;
-            // direct_release_complex(&mysolver);
+            tt = GetCurrentTime();
+            direct_solve_complex_ilp64(&mysolver, n, x, x_im, b, b_im);
+            time_rec.solve_time += GetCurrentTime() - tt;
+            direct_release_complex_ilp64(&mysolver);
         }
     }
+
+    if (!args.ordering_enable)
+        save_ordering("ordering.rhs", n, ordering);
 
     fprintf(stdout, "------------------------------------------\n");
 
@@ -315,11 +374,11 @@ int main(int argc, char **argv)
     { // complex system
         for (int i = 0; i < args.num_b; i++)
         {
-            // printf("Check for No. %d Solution:\n", i);
-            // // 1) using double precision
-            // check_correctness_complex(n, row_ptr, col_idx, val, val_im, &x[n * i], &x_im[n * i], &b[n * i], &b_im[n * i]);
-            // // 2) using long double precision
-            // check_correctness_complex_ld_d2ld(n, row_ptr, col_idx, val, val_im, &x[n * i], &x_im[n * i], &b[n * i], &b_im[n * i]);
+            printf("Check for No. %d Solution:\n", i);
+            // 1) using double precision
+            check_correctness_complex_ilp64(n, row_ptr, col_idx, val, val_im, &x[n * i], &x_im[n * i], &b[n * i], &b_im[n * i]);
+            // 2) using long double precision
+            check_correctness_complex_ld_d2ld_ilp64(n, row_ptr, col_idx, val, val_im, &x[n * i], &x_im[n * i], &b[n * i], &b_im[n * i]);
         }
         free(val_im);
         free(x_im);

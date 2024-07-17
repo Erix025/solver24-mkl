@@ -12,8 +12,6 @@
 #include <sys/time.h>
 #include <sstream>
 #include <iomanip>
-#include <iostream>
-#include <fstream>
 // read matrix file
 #include "mmio_highlevel.h"
 
@@ -22,14 +20,13 @@
 #include "utlise_long.h"
 
 // direct solver code
+#include "mkl_iterative_solver.h"
 #include "mkl_direct_solver.h"
 
 struct SolverArgument
 {
     std::string filename_matrix;
     std::string filename_b;
-    std::string ordering_input;
-    bool ordering_enable = false;
     int read_matrix_base = 1; // 0-base or 1-base, default 1-base
     int type = 0;             // type to output time, 0: end to end time; 1:solver time + solve time; 2:solve time; default 0
     int test_frequency = 3;   // run code frequency
@@ -52,43 +49,6 @@ std::string get_index_filename(std::string &prefix, int index)
     std::string filename = prefix + "_t" + std::to_string(index) + ".rhs";
     return filename;
 }
-
-void load_ordering(std::string filename, const int n,int* ordering) {
-    std::ifstream file(filename);
-
-    if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
-
-    int number;
-    int count = 0;
-    while (file >> number && count < n) {
-        ordering[count] = number;
-        ++count;
-    }
-
-    if (count < n) {
-        std::cerr << "Warning: Only " << count << " elements were read from the file." << std::endl;
-    }
-
-    file.close();
-}
-void save_ordering(std::string filename, const int n, const int* ordering) {
-    std::ofstream file(filename);
-
-    if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
-
-    for (int i = 0; i < n; ++i) {
-        file << ordering[i] << std::endl;
-    }
-
-    file.close();
-}
-
 
 void parse_args(int argc, char **argv, SolverArgument *args)
 {
@@ -137,12 +97,7 @@ void parse_args(int argc, char **argv, SolverArgument *args)
             exit(-1);
         }
     }
-    if (argc >= 8)
-    {
-        args->ordering_input = argv[7];
-        args->ordering_enable = true;
-    }
-    if (argc < 3 || argc > 8)
+    if (argc < 3 || argc > 7)
     {
         print_help();
         exit(-1);
@@ -164,7 +119,6 @@ int main(int argc, char **argv)
     double *x = NULL, *x_im = NULL; // solution vector x, (x: real number, x_im: imaginary number)
     double *b = NULL, *b_im = NULL; // right-hand side vector b, (b: real number, b_im: imaginary number)
     double tt, time;
-    int* ordering = NULL;
 
     SolverArgument args;
 
@@ -255,11 +209,6 @@ int main(int argc, char **argv)
         memset(x_im, 0.0, sizeof(double) * n * args.num_b);
     }
 
-    ordering = new int[n];
-
-    if (args.ordering_enable)
-        load_ordering(args.ordering_input, n, ordering);
-
     /* ========================================== */
     // Step 2: Solve the linear system
     /* ========================================== */
@@ -269,43 +218,70 @@ int main(int argc, char **argv)
     {
         if (args.sys_type == 0)
         {
-            struct DirectSolver mysolver;
-            mysolver.num_b = args.num_b;
+            struct DirectSolver direct_solver; 
+            struct IterativeSolver iter_solver;
+            iter_solver.num_b = args.num_b;
+            direct_solver.num_b = args.num_b;
+
+            // direct solver
             tt = GetCurrentTime();
-            direct_preprocess(&mysolver, n, row_ptr, col_idx);
+            direct_preprocess(&direct_solver, n, row_ptr, col_idx);
             time_rec.preprocess_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_analyze(&mysolver, n, val);
+            direct_analyze(&direct_solver, n, val);
             time_rec.analyze_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_solve(&mysolver, n, x, b);
+            direct_solve(&direct_solver, n, x, b);
             time_rec.solve_time += GetCurrentTime() - tt;
-            direct_release(&mysolver);
+            direct_release(&direct_solver);
+
+            tt = GetCurrentTime();
+            iterative_preprocess(&iter_solver, n, row_ptr, col_idx);
+            time_rec.preprocess_time += GetCurrentTime() - tt;
+
+            tt = GetCurrentTime();
+            iterative_analyze(&iter_solver, n, val);
+            time_rec.analyze_time += GetCurrentTime() - tt;
+
+            tt = GetCurrentTime();
+            iterative_solve(&iter_solver, n, x, b);
+            time_rec.solve_time += GetCurrentTime() - tt;
+            // iterative_release(&mysolver);
         }
         else
         {
-            struct DirectComplexSolver mysolver;
-            mysolver.enable_ordering = args.ordering_enable;
-            mysolver.parm = ordering;
+            struct DirectComplexSolver direct_solver; 
+            struct IterativeComplexSolver iter_solver;
+
+            // direct solver
             tt = GetCurrentTime();
-            direct_preprocess_complex(&mysolver, n, row_ptr, col_idx);
+            direct_preprocess_complex(&direct_solver, n, row_ptr, col_idx);
             time_rec.preprocess_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_analyze_complex(&mysolver, n, val, val_im);
+            direct_analyze_complex(&direct_solver, n, val, val_im);
             time_rec.analyze_time += GetCurrentTime() - tt;
 
             tt = GetCurrentTime();
-            direct_solve_complex(&mysolver, n, x, x_im, b, b_im);
+            direct_solve_complex(&direct_solver, n, x, x_im, b, b_im);
             time_rec.solve_time += GetCurrentTime() - tt;
-            direct_release_complex(&mysolver);
+
+            tt = GetCurrentTime();
+            iterative_preprocess_complex(&iter_solver, n, row_ptr, col_idx);
+            time_rec.preprocess_time += GetCurrentTime() - tt;
+
+            tt = GetCurrentTime();
+            iterative_analyze_complex(&iter_solver, n, val, val_im);
+            time_rec.analyze_time += GetCurrentTime() - tt;
+
+            tt = GetCurrentTime();
+            iterative_solve_complex(&iter_solver, n, x, x_im, b, b_im);
+            time_rec.solve_time += GetCurrentTime() - tt;
+            // iterative_release_complex(&mysolver);
         }
     }
-
-    if (!args.ordering_enable)
-        save_ordering("ordering.rhs", n, ordering);
 
     fprintf(stdout, "------------------------------------------\n");
 

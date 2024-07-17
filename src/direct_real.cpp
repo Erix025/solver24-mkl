@@ -15,10 +15,10 @@ void direct_preprocess(struct DirectSolver *solver, const int n, const int *row_
         solver->iparm[i] = 0;
     }
     solver->iparm[0] = 1;
-    solver->iparm[1] = 2;
-    solver->iparm[3] = 91;
-    solver->iparm[7] = 10;
-    solver->iparm[9] = 20;
+    solver->iparm[1] = 3;
+//    solver->iparm[3] = 91;
+//    solver->iparm[7] = 10;
+//    solver->iparm[9] = 20;
     solver->iparm[20] = 0;
     solver->iparm[23] = 0;
     solver->iparm[34] = 1;
